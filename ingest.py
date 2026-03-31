@@ -89,7 +89,10 @@ def process_synthea_bundle(input_path, output_dir):
             
         full_url = entry.get('fullUrl', '')
         uuid_val = full_url.replace('urn:uuid:', '') if full_url.startswith('urn:uuid:') else ""
-        if not uuid_val and entry.get('request', {}).get('method') == 'PUT':
+        if '?' in entry.get('request', {}).get('url', ''):
+            # This is already a processed Conditional upsert. Skip completely!
+            pass
+        elif not uuid_val and entry.get('request', {}).get('method') == 'PUT':
             uuid_val = entry['request'].get('url', '').replace(f"{res_type}/", '')
 
         if uuid_val:
@@ -163,7 +166,11 @@ def upload_bundle(file_path: str, token: str) -> bool:
             errors = [e for e in res_json.get('entry', []) if not str(e.get('response', {}).get('status', '')).startswith('2')]
             if errors:
                 print(f"⚠️ [WARNING] Internal FHIR validation errors occurred!")
-                for err in errors[:2]: print(f"      -> 🚨 {err.get('response', {}).get('outcome', {}).get('issue', [{}])[0].get('diagnostics', 'Unknown')}")
+                for err in errors[:2]:
+                    # Natively extract the Medplum specific details array, fallback to raw outcome dictionary
+                    issue = err.get('response', {}).get('outcome', {}).get('issue', [{}])[0]
+                    diag = issue.get('diagnostics') or issue.get('details', {}).get('text') or str(issue)
+                    print(f"      -> 🚨 {diag}")
             else:
                 print(f"✅ [SUCCESS] Block firmly verified & safely persisted!")
             return True
