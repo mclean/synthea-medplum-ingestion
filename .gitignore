@@ -1,0 +1,9 @@
+# env
+.env
+__pycache__/
+*.pyc
+
+# Uploads
+temp_uploads/
+ingestion_audit.log
+*.zip
