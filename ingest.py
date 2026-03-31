@@ -163,16 +163,20 @@ def upload_bundle(file_path: str, token: str) -> bool:
         
         if response.status_code in (200, 201):
             res_json = response.json()
-            errors = [e for e in res_json.get('entry', []) if not str(e.get('response', {}).get('status', '')).startswith('2')]
+            all_entries = res_json.get('entry', [])
+            errors = [e for e in all_entries if not str(e.get('response', {}).get('status', '')).startswith('2')]
             if errors:
-                print(f"⚠️ [WARNING] Internal FHIR validation errors occurred!")
+                ok_count = len(all_entries) - len(errors)
+                print(f"⚠️ [WARNING] FHIR validation errors: {len(errors)} failed, {ok_count} succeeded out of {len(all_entries)} entries.")
                 for err in errors[:2]:
-                    # Natively extract the Medplum specific details array, fallback to raw outcome dictionary
                     issue = err.get('response', {}).get('outcome', {}).get('issue', [{}])[0]
                     diag = issue.get('diagnostics') or issue.get('details', {}).get('text') or str(issue)
                     print(f"      -> 🚨 {diag}")
+                if ok_count == 0:
+                    print(f"❌ [BLOCK FAILED] All {len(errors)} entries rejected — nothing persisted.")
+                    return False
             else:
-                print(f"✅ [SUCCESS] Block firmly verified & safely persisted!")
+                print(f"✅ [SUCCESS] Block verified — all {len(all_entries)} entries persisted!")
             return True
         else:
             print(f"❌ [API REJECT] Medplum DB Rate Limit Repelled Slice!")
