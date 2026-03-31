@@ -208,18 +208,20 @@
             terminal.scrollTop = terminal.scrollHeight;
             
             // Auto update progress bar based on logs
-            if (dataStr.includes('Extracting')) setProgress(15);
-            if (dataStr.includes('Authenticated')) setProgress(30);
-            if (dataStr.includes('Upserting')) {
-                const match = dataStr.match(/\[Transaction (\d+)\/(\d+)\]/);
+            if (dataStr.includes('[EXTRACT]')) setProgress(15);
+            if (dataStr.includes('[AUTH]')) setProgress(30);
+            if (dataStr.includes('Transmitting atomic block')) {
+                const match = dataStr.match(/\[(\d+)\/(\d+)\]/);
                 if (match) {
                     const current = parseInt(match[1]);
                     const total = parseInt(match[2]);
                     setProgress(30 + Math.floor((current / total) * 65));
+                    document.getElementById('status-label').textContent = `Transmitting Block ${current} of ${total}`;
                 }
             }
-            if (dataStr.includes('Successfully ingested')) {
+            if (dataStr.includes('cleanly terminated')) {
                 setProgress(100);
+                document.getElementById('status-label').textContent = 'Data Pipeline Finalized!';
                 uploadBtn.textContent = 'Upload Completed Gracefully!';
                 uploadBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
             }
